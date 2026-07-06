@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.eggs/
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 环境变量 / 密钥（绝不提交）
+.env
+.env.*
+*.key
+
+# 运行时产物
+.memory/
+.tasks/
+.transcripts/
+.trace/
+.worktrees/
+.mailboxes/
+*.sqlite
+history.txt
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+._*
+
+# 测试
+.pytest_cache/
+.coverage
+htmlcov/

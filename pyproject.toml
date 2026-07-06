@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xiaozhi"
+version = "0.1.0"
+description = "小智 —— 一个自研的、可嵌入的轻量 Agent 框架（OpenAI 兼容）"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "AgentLearn" }]
+dependencies = [
+    "openai>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+# trace 可视化网页服务用标准库即可，无额外依赖；此处保留占位以便未来扩展
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+xiaozhi = "xiaozhi.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["xiaozhi*"]
