@@ -12,7 +12,7 @@
 |---|---|
 | 🎯 **简洁门面** | 一个 `Agent` / `AsyncAgent` 类聚合全部能力，`agent.chat("...")` 即用 |
 | ⚡ **同步 + 异步双模态** | 同步 `Agent` 用于脚本/CLI；异步 `AsyncAgent` 无缝接入 FastAPI / asyncio 并发 |
-| 🤝 **多 Agent 编排** | `AgentTeam` 原语：Lead 分解任务 → 多 Worker 并行 → 结果聚合（fan-out/fan-in）|
+| 🤝 **多 Agent 编排** | 两种范式：`AgentTeam`（Lead 分解 → Worker 并行 → 聚合，fan-out/fan-in）+ `Team`（长期 teammate + jsonl 收件箱消息总线 + 自动认领任务 + 团队协议）|
 | 🛠 **装饰器工具** | `@tool` 从函数类型注解自动生成 JSON Schema，无需手写 |
 | 🧩 **能力可插拔** | 记忆 / 技能 / 任务图 / cron / git worktree / MCP / 调用链可视化，按需开关 |
 | 🧠 **多层上下文压缩** | 裁剪 / 占位 / 大结果落盘 / LLM 摘要四级压缩，长对话不爆 token |
@@ -177,7 +177,7 @@ agent.repl()                   # 交互式命令行（/q 退出）
 xiaozhi/
 ├── agent.py           # Agent 门面（同步：组装 + ReAct 主循环 + REPL）
 ├── aio.py             # AsyncAgent（异步门面 + 主循环）
-├── orchestration.py   # AgentTeam 多 Agent 编排原语
+├── orchestration.py   # AgentTeam 多 Agent 编排原语（fan-out/fan-in）
 ├── config.py          # AgentConfig（依赖注入配置）
 ├── decorators.py      # @tool 装饰器
 ├── hooks.py           # HookManager
@@ -189,7 +189,7 @@ xiaozhi/
 ├── background.py      # 后台任务管理
 ├── tracer.py          # 调用链记录
 ├── statistics.py      # token 统计
-└── components/        # 可插拔能力：memory / skills / tasks / cron / worktree / mcp / trace_server
+└── components/        # 可插拔能力：memory / team / skills / tasks / cron / worktree / mcp / trace_server
 ```
 
 ## 🧠 记忆系统（参考 A-Mem, NeurIPS 2025）
@@ -212,6 +212,31 @@ xiaozhi/
 | `official` / `official_eval` | A-Mem 官方算法忠实复刻（对标基准） | 同上 |
 
 > 向量档依赖惰性加载：`pip install -e ".[memory]"` 才需要；`lite` 档零依赖即可运行。
+
+## 🤝 多 Agent 协作
+
+框架提供**两种互补的多 Agent 范式**：
+
+**1. `AgentTeam`（orchestration.py）—— fan-out / fan-in**
+Lead 用 LLM 把问题分解成 subtasks 指派给命名 worker，`asyncio.gather` 并行执行，最后聚合。适合可一次性并行分解的单个问题。
+
+**2. `Team`（components/team.py）—— 长期 teammate + 消息总线**
+Lead 派生后台常驻 teammate，双方通过**基于 jsonl 收件箱的消息总线**异步通信：
+
+- **消息总线**：每个 Agent 一个 `.mailboxes/<name>.jsonl` 收件箱，消费式读取（读完即删）。
+- **teammate 生命周期**：WORK（收件箱→LLM→工具循环）→ IDLE（每 5s 轮询收件箱/任务板）→ SHUTDOWN。
+- **自动认领**：teammate 空闲时扫描任务板，认领 pending、无 owner、依赖已满足的任务；任务绑定 worktree 时自动切到隔离目录，实现并发改动隔离。
+- **团队协议**：`shutdown` / `plan_approval` 请求-响应，靠 `request_id` 关联，Lead 可要求 teammate 先提交计划再执行。
+
+```python
+from xiaozhi.components.team import Team
+
+team = Team(client, model, workdir, tasks, worktree)
+team.register_tools(lead_agent_tool)          # 给 Lead 注册 spawn/send/check_inbox/协议工具
+team.spawn_teammate("frontend", "前端工程师", "实现登录页")
+for msg in team.consume_lead_inbox():         # 主循环每轮消费 Lead 收件箱
+    ...                                        # teammate 发回的 result / 协议响应自动路由
+```
 
 ## 🧪 示例
 
