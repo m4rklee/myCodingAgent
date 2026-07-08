@@ -192,6 +192,27 @@ xiaozhi/
 └── components/        # 可插拔能力：memory / skills / tasks / cron / worktree / mcp / trace_server
 ```
 
+## 🧠 记忆系统（参考 A-Mem, NeurIPS 2025）
+
+`components/memory.py` 实现记忆**写入 → 建链进化 → 召回 → 固化**全生命周期：
+
+- **结构化记忆**：记忆按 `user/feedback/project/reference` 四类分类建索引；LLM 抽取 `keywords/context/tags` 结构化属性，检索返回带时间戳的结构化多字段上下文。
+- **自进化建链**：新记忆入库时基于向量近邻 + LLM 决策自动与既有记忆建链，并反向更新关联记忆的 `context/tags`，形成可演化的链式记忆网络（缓解传统记忆「只增不改」）。
+- **双路召回 + 多跳扩展**：三级规则（类型/关键词/新鲜度）+ LLM 语义双路融合，沿 `links` 做多跳邻居扩展。
+- **固化**：记忆超阈值触发 LLM 合并去重、清理过时记忆。
+- **文件新鲜度**：sha256 校验，内容未变的文件不重复读入上下文，省 token。
+
+**召回档位**（`MEMORY_MODE` 开关，逐级增强、可回退）：
+
+| 档位 | 检索 | 依赖 |
+|------|------|------|
+| `lite`（默认） | 三级规则 + LLM 语义双路 | 零第三方依赖 |
+| `hybrid` | dense 向量 + BM25 + 规则 三路融合 | sentence-transformers, rank-bm25 |
+| `persist` | ChromaDB 持久化向量 + 三路融合 | + chromadb |
+| `official` / `official_eval` | A-Mem 官方算法忠实复刻（对标基准） | 同上 |
+
+> 向量档依赖惰性加载：`pip install -e ".[memory]"` 才需要；`lite` 档零依赖即可运行。
+
 ## 🧪 示例
 
 `examples/` 下有三个可运行示例：`minimal.py`（最小）、`with_tools.py`（自定义工具）、`full_features.py`（全能力）。

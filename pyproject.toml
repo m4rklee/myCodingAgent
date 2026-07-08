@@ -18,6 +18,12 @@ dependencies = [
 [project.optional-dependencies]
 # trace 可视化网页服务用标准库即可，无额外依赖；此处保留占位以便未来扩展
 dev = ["pytest>=7.0"]
+# 记忆系统增强档（A-Mem）：lite 档零依赖；下列仅 hybrid/persist/official 档惰性加载
+memory = [
+    "sentence-transformers>=2.2.0",  # dense 向量编码（hybrid/persist/official）
+    "rank-bm25>=0.2.2",              # BM25 稀疏检索（hybrid/persist 融合）
+    "chromadb>=0.4.0",               # 持久化向量库（persist 档）
+]
 
 [project.scripts]
 xiaozhi = "xiaozhi.cli:main"
